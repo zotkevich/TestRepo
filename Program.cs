@@ -1,5 +1,7 @@
-﻿using System.Diagnostics;
-using Newtonsoft.Json;
+using System.Diagnostics;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Unicode;
 
 namespace ConsoleApp3
 {
@@ -13,7 +15,7 @@ namespace ConsoleApp3
         public int ID_STUDY_GROUP { get; set; }
         public string P_KAFEDRA { get; set; }
         public string P_NAME { get; set; }
-        public string SEMESTER { get; set; }
+        public int SEMESTER { get; set; }
     }
     
     public class Curriculum
@@ -50,15 +52,16 @@ namespace ConsoleApp3
         private const string SourceJsonPath = @"src.json";
         private const string ResultJsonPath = @"result.json";
         
-        static void Main()
+        static async Task Main()
         {
             // Read the JSON file
             string sourcePath = Path.Combine(ProjectPath, SourceJsonPath);
             List<TeacherWorkload> teacherWorkloadList;
+
             using (var reader = new StreamReader(sourcePath))
             {
-                string json = reader.ReadToEnd();
-                teacherWorkloadList = JsonConvert.DeserializeObject<List<TeacherWorkload>>(json);
+                string json = await reader.ReadToEndAsync();
+                teacherWorkloadList = JsonSerializer.Deserialize<List<TeacherWorkload>>(json);
             }
 
             /*
@@ -73,7 +76,7 @@ namespace ConsoleApp3
                 }
                 Console.WriteLine("---------------------------------------");
             }*/
-
+            
             // Data grouping rule "учебный план -> дисциплина -> преподаватель -> группа"
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
@@ -106,11 +109,13 @@ namespace ConsoleApp3
             
             // Write the JSON string to a file
             string resultPath = Path.Combine(ProjectPath, ResultJsonPath);
-            string jsonString = JsonConvert.SerializeObject(groupedArray, Formatting.Indented);
-            File.WriteAllText(resultPath, jsonString);
+            string jsonString = JsonSerializer.Serialize(groupedArray, new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)
+            });
+            await File.WriteAllTextAsync(resultPath, jsonString);
         }
     }
 }
-
-
 
